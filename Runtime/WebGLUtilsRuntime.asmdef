@@ -2,9 +2,7 @@
     "name": "WebGLUtilsRuntime",
     "rootNamespace": "",
     "references": [],
-    "includePlatforms": [
-        "WebGL"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
