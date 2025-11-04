@@ -1,14 +1,17 @@
-[Ll]ibrary/
-[Tt]emp/
-[Oo]bj/
-[Bb]uild/
-[Bb]uilds/
-UserSettings/
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Visual Studio / Rider
 *.csproj
-*.unityproj
 *.sln
 *.user
 *.userprefs
 *.pidb
 *.booproj
-*.svd
+
+# Optional: log files
+*.log

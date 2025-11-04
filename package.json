@@ -1,0 +1,13 @@
+{
+  "name": "com.echotitan.webglplatformutils",
+  "version": "1.0.0",
+  "displayName": "WebGL Platform Utils",
+  "description": "Utilities for Unity WebGL to detect mobile browser and request fullscreen.",
+  "unity": "6000.0",
+  "keywords": ["webgl", "mobile", "fullscreen", "utils"],
+  "author": {
+    "name": "Eliahu Blokh",
+    "email": "ilya@iblokh.com",
+    "url": "https://github.com/ilyablokh/UnityWebGL-PlatformUtils.git"
+  }
+}
