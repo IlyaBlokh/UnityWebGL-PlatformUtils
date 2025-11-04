@@ -1,73 +1,72 @@
 ﻿using System;
 using System.IO;
 using UnityEditor;
-using UnityEditor.Callbacks;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace WebGLUtils.Editor
 {
-    public static class WebGLBuildPostprocessor
+  public class WebGLBuildPostprocessor : IPostprocessBuildWithReport
+  {
+    public int callbackOrder => 0;
+    private const string PlatformUtilsClientName = "platform-utils.js";
+
+    public void OnPostprocessBuild(BuildReport report)
     {
-        private const string PlatformUtilsClientName = "platform-utils.js";
+      if (report.summary.platform != BuildTarget.WebGL)
+        return;
 
-        [PostProcessBuild]
-        public static void OnPostprocessBuild(BuildTarget target, string pathToBuiltProject)
-        {
-            if (target != BuildTarget.WebGL)
-                return;
+      string buildPath = report.summary.outputPath;
+      string indexPath = Path.Combine(buildPath, "index.html");
 
-            string indexPath = Path.Combine(pathToBuiltProject, "index.html");
-            if (!File.Exists(indexPath))
-            {
-                Debug.LogWarning("WebGL postprocessor: index.html not found");
-                return;
-            }
+      string[] guids = AssetDatabase.FindAssets($"t:Script {nameof(WebGLBuildPostprocessor)}");
+      if (guids.Length == 0)
+      {
+        Debug.LogError($"[WebGLPlatformUtils] Could not find {nameof(WebGLBuildPostprocessor)} script.");
+        return;
+      }
 
-            string html = File.ReadAllText(indexPath);
+      string scriptPath = AssetDatabase.GUIDToAssetPath(guids[0]);
+      string editorFolder = Path.GetDirectoryName(scriptPath);
+      string packageRoot = Path.GetDirectoryName(editorFolder);
+      
+      System.Diagnostics.Debug.Assert(packageRoot != null, nameof(packageRoot) + " != null");
+      
+      string webGLFolder = Path.Combine(packageRoot, "WebGL");
+      string srcPath = Path.Combine(webGLFolder, PlatformUtilsClientName);
 
-            html = InjectScriptBeforeLoader(html, PlatformUtilsClientName);
+      srcPath = Path.GetFullPath(srcPath);
 
-            File.WriteAllText(indexPath, html);
+      if (!File.Exists(srcPath))
+      {
+        Debug.LogError($"[WebGLPlatformUtils] Could not find {PlatformUtilsClientName} at: {srcPath}");
+        return;
+      }
 
-            string srcPath = Path.Combine(Application.dataPath, "WebGL", PlatformUtilsClientName);
-            string dstPath = Path.Combine(pathToBuiltProject, PlatformUtilsClientName);
+      string dstPath = Path.Combine(buildPath, PlatformUtilsClientName);
+      File.Copy(srcPath, dstPath, true);
 
-            if (File.Exists(srcPath))
-            {
-                File.Copy(srcPath, dstPath, true);
-                Debug.Log("Copied platform-utils.js to WebGL build folder.");
-            }
-            else
-            {
-                Debug.LogWarning($"platform-utils.js not found at {srcPath}");
-            }
-        }
-
-        private static string InjectScriptBeforeLoader(string htmlContent, string scriptName)
-        {
-            if (htmlContent.Contains(scriptName))
-            {
-                Debug.Log("WebGL postprocess: " + scriptName + " already included.");
-                return htmlContent;
-            }
-
-            int loaderIndex = htmlContent.IndexOf("loader.js", StringComparison.Ordinal);
-            if (loaderIndex != -1)
-            {
-                int lineStart = htmlContent.LastIndexOf("<script", loaderIndex, StringComparison.Ordinal);
-                if (lineStart != -1)
-                {
-                    string injection = $"<script src=\"{scriptName}\"></script>\n";
-                    htmlContent = htmlContent.Insert(lineStart, injection);
-                    Debug.Log($"Injected {scriptName} before Unity loader script.");
-                }
-                else
-                    Debug.LogWarning("WebGL postprocess: could not find <script> tag for loader.js.");
-            }
-            else
-                Debug.LogWarning("WebGL postprocess: loader.js script not found in index.html.");
-
-            return htmlContent;
-        }
+      InjectScriptIntoIndex(indexPath, PlatformUtilsClientName);
+      Debug.Log("[WebGLPlatformUtils] platform-utils.js injected successfully.");
     }
+
+    private void InjectScriptIntoIndex(string indexPath, string scriptFile)
+    {
+      string html = File.ReadAllText(indexPath);
+      string marker = "<script src=\"Build/";
+      string injection = $"<script src=\"{scriptFile}\"></script>\n";
+
+      int insertIndex = html.IndexOf(marker, StringComparison.Ordinal);
+      if (insertIndex >= 0)
+      {
+        html = html.Insert(insertIndex, injection);
+        File.WriteAllText(indexPath, html);
+      }
+      else
+      {
+        Debug.LogWarning("[WebGLPlatformUtils] Could not find injection point in index.html");
+      }
+    }
+  }
 }
